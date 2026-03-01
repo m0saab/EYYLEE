@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الأكلات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-bright-orange: #FF7F00; 
+            --card-white: #FFFFFF;
+            --text-dark: #333333;
+            --btn-shadow: #CC6600;
+            --spy-red: #E63946;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-bright-orange);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            touch-action: manipulation;
+        }
+
+        .container {
+            text-align: center;
+            background: var(--card-white);
+            padding: 2rem 1.5rem;
+            border-radius: 40px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+            width: 85%;
+            max-width: 400px;
+        }
+
+        .theme-label {
+            color: var(--bg-bright-orange);
+            font-weight: 900;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        h1 { color: var(--bg-bright-orange); font-size: 2.2rem; font-weight: 900; margin: 0 0 1rem 0; }
+        .hidden { display: none !important; }
+
+        .screen { display: flex; flex-direction: column; gap: 15px; }
+
+        #display-box, #spy-display-box {
+            font-size: 2.8rem; 
+            font-weight: 900;
+            color: var(--text-dark);
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f9f9f9;
+            border-radius: 25px;
+            padding: 15px;
+            margin-bottom: 1rem;
+            border: 4px solid var(--bg-bright-orange);
+            line-height: 1.2;
+        }
+
+        input {
+            width: 100%; padding: 12px; border-radius: 15px; border: 2px solid #eee;
+            font-family: 'Cairo'; font-size: 1.1rem; text-align: center;
+        }
+
+        .btn {
+            color: white; border: none; padding: 15px; font-size: 1.5rem; font-weight: 800;
+            border-radius: 25px; cursor: pointer; transition: all 0.1s; width: 100%;
+            box-shadow: 0 6px 0 var(--btn-shadow);
+        }
+        .btn-orange { background-color: var(--bg-bright-orange); }
+        .btn-spy { background-color: var(--spy-red); box-shadow: 0 6px 0 #9d232c; }
+        .btn-vote { background-color: #f1f1f1; color: #333; box-shadow: 0 4px 0 #ccc; font-size: 1.2rem; margin-bottom: 5px; }
+        .btn-secondary { background-color: #666; box-shadow: 0 6px 0 #333; font-size: 1rem; }
+        
+        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--btn-shadow); }
+        .shuffle-anim { animation: popAction 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popAction { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        
+        .vote-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <span class="theme-label">أكلات</span>
+    
+    <div id="menu-screen" class="screen">
+        <h1>إي والا لأ</h1>
+        <button class="btn btn-orange" onclick="showScreen('eyy-screen')">إي والا لأ</button>
+        <button class="btn btn-spy" onclick="showScreen('spy-setup-screen')">جاسوس</button>
+    </div>
+
+    <div id="eyy-screen" class="screen hidden">
+        <h1>إي والا لأ</h1>
+        <div id="display-box">🍲</div>
+        <button class="btn btn-orange" onclick="shuffleFood()">مشكي</button>
+        <button class="btn btn-secondary" onclick="showScreen('menu-screen')">الرجوع</button>
+    </div>
+
+    <div id="spy-setup-screen" class="screen hidden">
+        <h1>إعداد الجاسوس</h1>
+        <div id="player-inputs">
+            <input type="text" placeholder="اللاعب 1" class="p-name">
+            <input type="text" placeholder="اللاعب 2" class="p-name">
+            <input type="text" placeholder="اللاعب 3" class="p-name">
+        </div>
+        <button class="btn btn-secondary" onclick="addPlayerField()">+ إضافة لاعب</button>
+        <button class="btn btn-spy" onclick="startSpyGame()">ابدأ اللعب</button>
+        <button class="btn btn-secondary" onclick="showScreen('menu-screen')">إلغاء</button>
+    </div>
+
+    <div id="spy-play-screen" class="screen hidden">
+        <h1 id="current-player-name" style="font-size: 1.5rem;">اسم اللاعب</h1>
+        <div id="spy-display-box" style="font-size: 2.2rem;">مرر الهاتف</div>
+        <button id="spy-action-btn" class="btn btn-orange" onclick="handleSpyTurn()">أظهر الكلمة</button>
+    </div>
+
+    <div id="vote-screen" class="screen hidden">
+        <h1>من هو الجاسوس؟</h1>
+        <div class="vote-list" id="vote-options"></div>
+    </div>
+
+    <div id="result-screen" class="screen hidden">
+        <h1 id="result-title">النتيجة</h1>
+        <div id="result-text" style="font-size: 2.5rem; font-weight: 900; margin-bottom: 20px;"></div>
+        <button class="btn btn-orange" onclick="location.reload()">لعبة جديدة</button>
+    </div>
+</div>
+
+<script>
+    const foodWords = [
+        "كسكسي", "عجة بالمرقاز", "شكشوكة", "لبلابي", "سلطة مشوية", "سلطة تونسية", "كفتاجي", 
+        "طاجين", "ملوخية", "كمونية", "مرقة لوبيا", "مرقة جلبانة", "مشوي", "روز جربي", 
+        "مدفونة", "فريكاسي", "بمبالوني", "بريك", "شباتي تونسي", "كسكروت تن", 
+        "كسكروت اسكالوب", "مقلوب", "ملاوي", "خبز طابونة", "زرير", "بسيسة", 
+        "عصيدة الزقوقو", "عصيدة عربي", "مقروض", "بقلاوة تونسية", "كعك ورقة", 
+        "شربة لسان عصفور", "نواصر", "بيتزا", "برغر", "سوشي", "لازانيا", "بان كيك", 
+        "وافل", "كريب", "تشيزكيك", "براونيز", "تيراميسو", "كرواسون"
+    ];
+
+    let spyState = { players: [], imposters: [], word: "", index: 0, isShowing: false };
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    function shuffleFood() {
+        const display = document.getElementById('display-box');
+        display.classList.remove('shuffle-anim');
+        void display.offsetWidth;
+        display.classList.add('shuffle-anim');
+        display.innerText = foodWords[Math.floor(Math.random() * foodWords.length)];
+    }
+
+    function addPlayerField() {
+        const container = document.getElementById('player-inputs');
+        const input = document.createElement('input');
+        input.type = "text";
+        input.placeholder = `اللاعب ${container.children.length + 1}`;
+        input.className = "p-name";
+        container.appendChild(input);
+    }
+
+    function startSpyGame() {
+        const names = Array.from(document.querySelectorAll('.p-name')).map(i => i.value.trim()).filter(n => n !== "");
+        if (names.length < 3) return alert("3 لاعبين على الأقل!");
+        const selectedWord = foodWords[Math.floor(Math.random() * foodWords.length)];
+        let shuffled = [...names].sort(() => 0.5 - Math.random());
+        spyState = { players: names, imposters: [shuffled[0]], word: selectedWord, index: 0, isShowing: false };
+        showScreen('spy-play-screen');
+        updateSpyUI();
+    }
+
+    function updateSpyUI() {
+        if (spyState.index >= spyState.players.length) { showVoteScreen(); return; }
+        document.getElementById('current-player-name').innerText = spyState.players[spyState.index];
+        document.getElementById('spy-display-box').innerText = "مرر الهاتف";
+        document.getElementById('spy-action-btn').innerText = "أظهر الكلمة";
+    }
+
+    function handleSpyTurn() {
+        const display = document.getElementById('spy-display-box');
+        const btn = document.getElementById('spy-action-btn');
+        if (!spyState.isShowing) {
+            const isSpy = spyState.imposters.includes(spyState.players[spyState.index]);
+            display.innerText = isSpy ? "جاسوس" : spyState.word;
+            display.style.color = isSpy ? "red" : "black";
+            btn.innerText = "إخفاء";
+            spyState.isShowing = true;
+        } else {
+            spyState.isShowing = false;
+            display.style.color = "black";
+            spyState.index++;
+            updateSpyUI();
+        }
+    }
+
+    function showVoteScreen() {
+        showScreen('vote-screen');
+        const list = document.getElementById('vote-options');
+        list.innerHTML = "";
+        spyState.players.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = "btn btn-vote";
+            btn.innerText = p;
+            btn.onclick = () => checkVote(p);
+            list.appendChild(btn);
+        });
+    }
+
+    function checkVote(pickedName) {
+        showScreen('result-screen');
+        const resultText = document.getElementById('result-text');
+        if (spyState.imposters.includes(pickedName)) {
+            resultText.innerText = "خسر الجاسوس! 🎉";
+            resultText.style.color = "green";
+        } else {
+            resultText.innerText = "فاز الجاسوس! 🕵️";
+            resultText.style.color = "red";
+        }
+    }
+</script>
+</body>
+</html>
